@@ -61,6 +61,21 @@ def cutadaptOutput():
         return ['fastq/trimmed/{sample}.trim.fastq.gz']
 
 
+def cutadaptCmd():
+
+    if config['paired']:
+        cmd = ('cutadapt -a {params.forwardAdapter} -A {params.reverseAdapter} '
+               '-o {output.trimmed[0]} -p {output.trimmed[1]} ')
+    else:
+        cmd = 'cutadapt -a {params.forwardAdapter} -o {output.trimmed[0]} '
+    cmd += ('--overlap {params.overlap} --error-rate {params.errorRate} '
+            '--minimum-length {params.minimumLength} '
+            '--quality-cutoff {params.qualityCutoff} '
+            '--gc-content {params.GCcontent} '
+            '--cores {threads} {input} > {output.qc} 2> {log}')
+    return cmd
+
+
 rule cutadapt:
     input:
         lambda wc: samples.xs(wc.sample, level=1)['path']
@@ -82,13 +97,7 @@ rule cutadapt:
     threads:
         workflow.cores
     shell:
-        'cutadapt -a {params.forwardAdapter} '
-        '--overlap {params.overlap} --error-rate {params.errorRate} '
-        '--minimum-length {params.minimumLength} '
-        '--quality-cutoff {params.qualityCutoff} '
-        '--gc-content {params.GCcontent} '
-        '--cores {threads} -o {output.trimmed[0]} {input} '
-        '> {output.qc} 2> {log}'
+        cutadaptCmd()
 
 
 rule bowtie2Build:
