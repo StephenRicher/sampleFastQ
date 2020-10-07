@@ -21,6 +21,7 @@ if not config:
 default_config = {
     'workdir':           workflow.basedir,
     'tmpdir':            tempfile.gettempdir(),
+    'threads':           workflow.cores,
     'data':              ''          ,
     'paired':            ''          ,
     'genome':
@@ -95,7 +96,7 @@ rule cutadapt:
     conda:
         f'{ENVS}/cutadapt.yaml'
     threads:
-        workflow.cores
+        config["threads"]
     shell:
         cutadaptCmd()
 
@@ -114,7 +115,7 @@ rule bowtie2Build:
     conda:
         f'{ENVS}/bowtie2.yaml'
     threads:
-        workflow.cores
+        config["threads"]
     shell:
         'bowtie2-build --threads {threads} {input} {params.basename} &> {log}'
 
@@ -147,7 +148,7 @@ rule bowtie2Map:
     conda:
         f'{ENVS}/bowtie2.yaml'
     threads:
-        workflow.cores - 1
+        config["threads"] - 1
     shell:
         bowtie2Cmd()
 
