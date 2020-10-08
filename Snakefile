@@ -164,7 +164,7 @@ else:
                 '--threads {threads} '
                 '> {output.sam} 2> {log}; cp {log} {output.qc}')
 
-    rule bowtie2Map:
+    rule bowtie2:
         input:
             reads = rules.cutadapt.output.trimmed,
             index = rules.bowtie2Build.output
@@ -176,7 +176,7 @@ else:
         group:
             'map'
         log:
-            'logs/bowtie2Map/{sample}.log'
+            'logs/bowtie2/{sample}.log'
         conda:
             f'{ENVS}/bowtie2.yaml'
         threads:
@@ -187,9 +187,9 @@ else:
 
 def getMapOutput(wc):
     if config['spliced']:
-        return rules.hisat2Map.output.sam
+        return rules.hisat2.output.sam
     else:
-        return rules.bowtie2Map.output.sam
+        return rules.bowtie2.output.sam
 
 
 rule getFastQIDs:
