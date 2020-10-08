@@ -207,7 +207,7 @@ rule getFastQIDs:
         'logs/getFastQIDs/{sample}.log'
     shell:
         '(awk -v ref={params.chr} -f {SCRIPTS}/filterFastQID.awk {input} '
-        '| uniq > {output}) 2> {log}'
+        '| sed s"/\/[12]$//" | uniq > {output}) 2> {log}'
 
 
 rule filterFastQ:
@@ -220,4 +220,4 @@ rule filterFastQ:
         'logs/filterFastQ/{sample}-{read}.log'
     shell:
         'grep -A 3 -Ff {input.ids} <(zcat -f {input.reads}) '
-        '| grep -v "^--$" | sed s"/\/[12]//" | gzip > {output} 2> {log} '
+        '| grep -v "^--$" | gzip > {output} 2> {log} '
