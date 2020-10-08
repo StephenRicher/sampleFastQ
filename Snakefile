@@ -24,8 +24,10 @@ default_config = {
     'threads':           workflow.cores,
     'data':              ''          ,
     'paired':            ''          ,
+    'spliced':           ''          ,
     'genome':
         {'build':          'sequence',
+         'index':          None      ,
          'sequence':       ''        ,},
     'cutadapt':
         {'forwardAdapter': 'AGATCGGAAGAGCACACGTCTGAACTCCAGTCA',
@@ -101,61 +103,98 @@ rule cutadapt:
         cutadaptCmd()
 
 
-rule bowtie2Build:
-    input:
-        config['genome']['sequence']
-    output:
-        expand('dat/genome/index/{build}.{n}.bt2',
-               n=['1', '2', '3', '4', 'rev.1', 'rev.2'],
-               build=config["genome"]["build"])
-    params:
-        basename = f'dat/genome/index/{config["genome"]["build"]}'
-    log:
-        'logs/bowtie2Build.log'
-    conda:
-        f'{ENVS}/bowtie2.yaml'
-    threads:
-        config["threads"]
-    shell:
-        'bowtie2-build --threads {threads} {input} {params.basename} &> {log}'
+if config['spliced']:
+
+    def hisat2Cmd():
+        if config['paired']:
+            return ('hisat2 -x {params.index} -1 {input.reads[0]} '
+                '-2 {input.reads[1]} --threads {threads} '
+                '--summary-file {output.qc} > {output.sam} 2> {log}')
+        else:
+            return ('hisat2 -x {params.index} -p {threads} '
+                '-U {input.reads[0]} > {output.sam} 2> {log}')
+
+    rule hisat2:
+        input:
+            reads = rules.cutadapt.output.trimmed
+        output:
+            sam = 'mapped/{sample}.sam',
+            qc = 'qc/{sample}.hisat2.txt'
+        params:
+            index = config['genome']['index']
+        log:
+            'logs/hisat2/{sample}.log'
+        conda:
+            f'{ENVS}/hisat2.yaml'
+        threads:
+            config['threads']
+        shell:
+            hisat2Cmd()
+
+else:
+
+    rule bowtie2Build:
+        input:
+            config['genome']['sequence']
+        output:
+            expand('dat/genome/index/{build}.{n}.bt2',
+                   n=['1', '2', '3', '4', 'rev.1', 'rev.2'],
+                   build=config["genome"]["build"])
+        params:
+            basename = f'dat/genome/index/{config["genome"]["build"]}'
+        log:
+            'logs/bowtie2Build.log'
+        conda:
+            f'{ENVS}/bowtie2.yaml'
+        threads:
+            config["threads"]
+        shell:
+            'bowtie2-build --threads {threads} {input} {params.basename} &> {log}'
 
 
-def bowtie2Cmd():
-    if config['paired']:
-        return (
-            'bowtie2 -x {params.index} -1 {input.reads[0]} '
-            '-2 {input.reads[1]} --threads {threads} '
-            '> {output.sam} 2> {log}; cp {log} {output.qc}')
+    def bowtie2Cmd():
+        if config['paired']:
+            return (
+                'bowtie2 -x {params.index} -1 {input.reads[0]} '
+                '-2 {input.reads[1]} --threads {threads} '
+                '> {output.sam} 2> {log}; cp {log} {output.qc}')
+        else:
+            return (
+                'bowtie2 -x {params.index} -U {input.reads[0]} '
+                '--threads {threads} '
+                '> {output.sam} 2> {log}; cp {log} {output.qc}')
+
+    rule bowtie2Map:
+        input:
+            reads = rules.cutadapt.output.trimmed,
+            index = rules.bowtie2Build.output
+        output:
+            sam = pipe('mapped/{sample}.sam'),
+            qc = 'qc/bowtie2/{sample}.bowtie2.txt'
+        params:
+            index = f'dat/genome/index/{config["genome"]["build"]}'
+        group:
+            'map'
+        log:
+            'logs/bowtie2Map/{sample}.log'
+        conda:
+            f'{ENVS}/bowtie2.yaml'
+        threads:
+            config["threads"] - 1
+        shell:
+            bowtie2Cmd()
+
+
+def getMapOutput(wc):
+    if config['spliced']:
+        return rules.hisat2Map.output.sam
     else:
-        return (
-            'bowtie2 -x {params.index} -U {input.reads[0]} '
-            '--threads {threads} '
-            '> {output.sam} 2> {log}; cp {log} {output.qc}')
-
-rule bowtie2Map:
-    input:
-        reads = rules.cutadapt.output.trimmed,
-        index = rules.bowtie2Build.output
-    output:
-        sam = pipe('mapped/{sample}.sam'),
-        qc = 'qc/bowtie2/{sample}.bowtie2.txt'
-    params:
-        index = f'dat/genome/index/{config["genome"]["build"]}'
-    group:
-        'map'
-    log:
-        'logs/bowtie2Map/{sample}.log'
-    conda:
-        f'{ENVS}/bowtie2.yaml'
-    threads:
-        config["threads"] - 1
-    shell:
-        bowtie2Cmd()
+        rules.bowtie2Map.output.sam
 
 
 rule getFastQIDs:
     input:
-        rules.bowtie2Map.output.sam
+        getMapOutput
     output:
         'fastq/{sample}-validIDs.txt'
     params:
