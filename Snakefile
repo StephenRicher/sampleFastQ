@@ -189,7 +189,7 @@ def getMapOutput(wc):
     if config['spliced']:
         return rules.hisat2Map.output.sam
     else:
-        rules.bowtie2Map.output.sam
+        return rules.bowtie2Map.output.sam
 
 
 rule getFastQIDs:
