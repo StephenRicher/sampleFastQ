@@ -140,7 +140,7 @@ rule bowtie2Map:
         sam = pipe('mapped/{sample}.sam'),
         qc = 'qc/bowtie2/{sample}.bowtie2.txt'
     params:
-        index = f'genome/index/{config["genome"]["build"]}'
+        index = f'dat/genome/index/{config["genome"]["build"]}'
     group:
         'map'
     log:
