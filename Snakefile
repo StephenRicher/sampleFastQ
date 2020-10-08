@@ -165,7 +165,8 @@ rule getFastQIDs:
     log:
         'logs/getFastQIDs/{sample}.log'
     shell:
-        """awk "\$3=={params.chr} {{print "@"\$1}}" | uniq > {output} """
+        '(awk -v ref={params.chr} -f {SCRIPTS}/filterFastQID.awk {input} '
+        '| uniq > {output}) 2> {log}'
 
 
 rule filterFastQ:
