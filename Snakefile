@@ -122,6 +122,8 @@ if config['spliced']:
             qc = 'qc/{sample}.hisat2.txt'
         params:
             index = config['genome']['index']
+        group:
+            'map'
         log:
             'logs/hisat2/{sample}.log'
         conda:
