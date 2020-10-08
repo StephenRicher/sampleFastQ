@@ -218,4 +218,4 @@ rule filterFastQ:
         'logs/filterFastQ/{sample}-{read}.log'
     shell:
         'grep -A 3 -Ff {input.ids} <(zcat -f {input.reads}) '
-        '| grep -v "^--$" | gzip > {output} 2> {log} '
+        '| grep -v "^--$" | sed s"/\/[12]//" | gzip > {output} 2> {log} '
