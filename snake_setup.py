@@ -68,8 +68,6 @@ def load_samples(file, paired):
 
     samples = pd.read_table(file, sep = ',', dtype = {'rep' : str})
     # Validate read file input with wildcard definitions
-    if not samples['group'].str.match(r'[^\/\s.-]+').all():
-        sys.exit(f'Invalid group definition in {file}.')
     if not samples['rep'].str.match(r'\d+').all():
         sys.exit(f'Invalid replicate definition in {file}.')
     if not samples['read'].str.match(r'R[12]').all():
