@@ -113,7 +113,8 @@ if config['spliced']:
                 '--summary-file {output.qc} > {output.sam} 2> {log}')
         else:
             return ('hisat2 -x {params.index} -p {threads} '
-                '-U {input.reads[0]} > {output.sam} 2> {log}')
+                '-U {input.reads[0]} --summary-file {output.qc} '
+                '> {output.sam} 2> {log}')
 
     rule hisat2:
         input:
