@@ -260,7 +260,7 @@ rule getFastQIDs:
         f'{ENVS}/samtools.yaml'
     shell:
         '(samtools view -@ {threads} {input} | awk -f {SCRIPTS}/getID.awk '
-        '| sed s"/\/[12]$//" | uniq > {output}) 2> {log}'
+        '| sed s"/\/[12]\$$/\$/" | sort | uniq > {output}) 2> {log}'
 
 
 rule filterFastQ:
@@ -272,5 +272,5 @@ rule filterFastQ:
     log:
         'logs/filterFastQ/{sample}-{read}.log'
     shell:
-        'grep -A 3 -Ff {input.ids} <(zcat -f {input.reads}) '
+        'grep -A 3 -f {input.ids} <(zcat -f {input.reads}) '
         '| grep -v "^--$" | gzip > {output} 2> {log} '
