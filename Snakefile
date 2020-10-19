@@ -249,7 +249,7 @@ rule filterRegions:
 
 rule getFastQIDs:
     input:
-        rules.filterRegions.output.bam
+        rules.filterRegions.output
     output:
         'fastq/{sample}-validIDs.txt'
     log:
