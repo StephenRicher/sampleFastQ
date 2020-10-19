@@ -131,7 +131,7 @@ if config['spliced']:
         conda:
             f'{ENVS}/hisat2.yaml'
         threads:
-            max(1, (config['threads'] / 2) - 1)
+            max(1, int(config['threads'] / 2))
         shell:
             hisat2Cmd()
 
@@ -184,7 +184,7 @@ else:
         conda:
             f'{ENVS}/bowtie2.yaml'
         threads:
-            max(1, (config['threads'] / 2) - 1)
+            max(1, int(config['threads'] / 2))
         shell:
             bowtie2Cmd()
 
@@ -208,7 +208,7 @@ rule sortBAM:
     conda:
         f'{ENVS}/samtools.yaml'
     threads:
-        max(1, (config['threads'] / 2))
+        max(1, int(config['threads'] / 2))
     shell:
         'samtools sort -@ {threads} {input} > {output} 2> {log}'
 
@@ -233,7 +233,7 @@ rule filterRegions:
         bam = rules.sortBAM.output,
         index = rules.indexBAM.output
     output:
-        pipe('mapped/{sample}.filt.sam')
+        'mapped/{sample}.filt.bam'
     params:
         bed = config['genome']['regions']
     log:
@@ -241,20 +241,23 @@ rule filterRegions:
     conda:
         f'{ENVS}/samtools.yaml'
     threads:
-        max(1, config['threads'] - 1)
+        max(1, config['threads'])
     shell:
-        'samtools view -L {params.bed} {input.bam} > {output} 2> {log}'
+        'samtools view -b -@ {threads} -L {params.bed} '
+        '{input.bam} > {output} 2> {log}'
 
 
 rule getFastQIDs:
     input:
-        rules.filterRegions.output
+        rules.filterRegions.output.bam
     output:
         'fastq/{sample}-validIDs.txt'
     log:
         'logs/getFastQIDs/{sample}.log'
+    conda:
+        f'{ENVS}/samtools.yaml'
     shell:
-        '(awk -f {SCRIPTS}/getID.awk {input} '
+        '(samtools view {input} | awk -f {SCRIPTS}/getID.awk '
         '| sed s"/\/[12]$//" | uniq > {output}) 2> {log}'
 
 
