@@ -27,6 +27,7 @@ default_config = {
     'spliced':           ''          ,
     'genome':
         {'build':          'sequence',
+         'regions':        ''        ,
          'index':          None      ,
          'sequence':       ''        ,},
     'cutadapt':
@@ -182,7 +183,7 @@ else:
         conda:
             f'{ENVS}/bowtie2.yaml'
         threads:
-            config["threads"] - 1
+            max(1, (config['threads'] / 2) - 1)
         shell:
             bowtie2Cmd()
 
@@ -194,19 +195,65 @@ def getMapOutput(wc):
         return rules.bowtie2.output.sam
 
 
-rule getFastQIDs:
+rule sortBAM:
     input:
         getMapOutput
     output:
-        'fastq/{sample}-validIDs.txt'
-    params:
-        chr = 11
+        'mapped/{sample}.sort.bam'
     group:
         'map'
     log:
+        'logs/sortBAM/{sample}.log'
+    conda:
+        f'{ENVS}/samtools.yaml'
+    threads:
+        max(1, (config['threads'] / 2))
+    shell:
+        'samtools sort -@ {threads} {input} > {output} 2> {log}'
+
+
+rule indexBAM:
+    input:
+        rules.sortBAM.output
+    output:
+        f'{rules.sortBAM.output}.bai'
+    log:
+        'logs/indexBAM/{sample}.log'
+    conda:
+        f'{ENVS}/samtools.yaml'
+    threads:
+        config['threads']
+    shell:
+        'samtools index -@ {threads} {input} &> {log}'
+
+
+rule filterRegions:
+    input:
+        bam = rules.sortBAM.output,
+        index = rules.indexBAM.output
+    output:
+        pipe('mapped/{sample}.filt.sam')
+    params:
+        bed = config['genome']['regions']
+    log:
+        'logs/filterRegions/{sample}.log'
+    conda:
+        f'{ENVS}/samtools.yaml'
+    threads:
+        max(1, config['threads'] - 1)
+    shell:
+        'samtools view -L {params.bed} {input.bam} > {output} 2> {log}'
+
+
+rule getFastQIDs:
+    input:
+        rules.filterRegions.output
+    output:
+        'fastq/{sample}-validIDs.txt'
+    log:
         'logs/getFastQIDs/{sample}.log'
     shell:
-        '(awk -v ref={params.chr} -f {SCRIPTS}/filterFastQID.awk {input} '
+        '(awk -f {SCRIPTS}/getID.awk {input} '
         '| sed s"/\/[12]$//" | uniq > {output}) 2> {log}'
 
 
