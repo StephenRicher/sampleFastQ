@@ -254,10 +254,12 @@ rule getFastQIDs:
         'fastq/{sample}-validIDs.txt'
     log:
         'logs/getFastQIDs/{sample}.log'
+    threads:
+        max(1, config['threads'])
     conda:
         f'{ENVS}/samtools.yaml'
     shell:
-        '(samtools view {input} | awk -f {SCRIPTS}/getID.awk '
+        '(samtools view -@ {threads} {input} | awk -f {SCRIPTS}/getID.awk '
         '| sed s"/\/[12]$//" | uniq > {output}) 2> {log}'
 
 
