@@ -130,7 +130,7 @@ if config['spliced']:
         conda:
             f'{ENVS}/hisat2.yaml'
         threads:
-            config['threads']
+            max(1, (config['threads'] / 2) - 1)
         shell:
             hisat2Cmd()
 
