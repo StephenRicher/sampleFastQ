@@ -119,7 +119,7 @@ if config['spliced']:
         input:
             reads = rules.cutadapt.output.trimmed
         output:
-            sam = 'mapped/{sample}.sam',
+            sam = pipe('mapped/{sample}.sam'),
             qc = 'qc/{sample}.hisat2.txt'
         params:
             index = config['genome']['index']
