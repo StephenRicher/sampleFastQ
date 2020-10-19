@@ -260,7 +260,7 @@ rule getFastQIDs:
         f'{ENVS}/samtools.yaml'
     shell:
         '(samtools view -@ {threads} {input} | awk -f {SCRIPTS}/getID.awk '
-        '| sed s"/\/[12]/\/" | sort | uniq > {output}) 2> {log}'
+        '| sed s"/\/[12]$//" | sort | uniq > {output}) 2> {log}'
 
 
 rule filterFastQ:
